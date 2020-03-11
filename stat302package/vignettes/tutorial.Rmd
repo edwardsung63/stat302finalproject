@@ -1,0 +1,125 @@
+---
+title: "Project 3: stat302package Tutorial"
+author: "Edward Sung"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{stat302package Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(stat302package)
+```
+
+# Introductory
+
+The PROJECT3 package is a final project for STAT 302. It can be used for a variety of uses including linear modeling, k-nearest-neighbors, t-tests, and Random Forest Cross Validation. To install the package from github, run the following code.
+
+
+## Install Package from Github
+```{r, eval=FALSE}
+setwd("..")
+devtools::install("stat302package")
+library(YOUR_PACKAGE_NAME)
+?my_pow
+
+devtools::install_github("edwardsung63/stat302package")
+library(stat302package)
+?my_pow
+
+library(stat302package)
+```
+
+# Tutorial for my_t_test()
+
+All the tests demonstrated below use `lifeExp` data from `my_gapminder`.
+# case I: alternative = "two.sided"
+  \begin{align}
+  H_0: \mu &= 60,\\
+  H_a: \mu &\neq 60.
+  \end{align}
+```{r}
+data("my_gapminder")
+my_t_test(my_gapminder$lifeExp, alternative = "two.sided", mu = 60)
+```
+From the test result, we notice that the p_value is greater than 0.05. Thus, it is not statistically significant have no enough evidence to reject the null hypothesis.
+
+# case II: alternative = "less"
+  \begin{align}
+  H_0: \mu &= 60,\\
+  H_a: \mu &< 60.
+  \end{align}
+```{r}
+my_t_test(my_gapminder$lifeExp, alternative = "less", mu = 60)
+```
+From the test result, we notice that the p_value is less than 0.05. Thus, it is not statistically significant have no enough evidence to reject the null hypothesis.
+
+# case III: alternative = "greater"
+  \begin{align}
+  H_0: \mu &= 60,\\
+  H_a: \mu &> 60.
+  \end{align}
+```{r}
+my_t_test(my_gapminder$lifeExp, alternative = "greater", mu = 60)
+```
+From the test result, we notice that the p_value is greater than 0.05. Thus, it is not statistically significant have no enough evidence to reject the null hypothesis.
+
+
+# Tutorial for my_lm()
+```{r, eval=FALSE}
+test <- my_lm(my_fml = lifeExp ~ gdpPercap + continent, my_data = my_gapminder)
+my_coef <- test[1]
+my_matrix <- cbind(1, my_gapminder$gdpPercap)
+y_hat <- my_matrix %*% as.matrix(my_coef)
+plot(my_gapminder$lifeExp, y_hat)
+expect_is(my_lm(pop ~ gdpPercap, my_data = my_gapminder), "table")
+```
+As shown, we notice that the difference of `lifeExp` between two observations is an unit in `gdpPercap`. Compared to the coeffiecients of different continents, `gdpPercap` has less influence on `lifeExp` than `continent`.
+
+# Tutorial for my_knn_cv()
+```{r, eval=FALSE}
+tutor_knn <- my_knn_cv(train = my_gapminder[, 3 : 4], 
+                       cl = my_gapminder$continent, k_nn = 10, k_cv = 5)
+```
+
+# Tutorial for my_rf_cv()
+```{r, eval=FALSE}
+library(class)
+library(tidyverse)
+library(randomForest)
+my_rf_cv <- function(k) {
+  fold <- sample(rep(1:k, length = length(my_gapminder$lifeExp)))
+  # data <- data.frame()
+  mse <- rep(NA, k)
+  # loop thru the folds
+  for (i in 1:k) {
+    data_train <- iris[fold != i, ] # Xi
+    data_test <-  iris[fold == i, ]  # Xi star
+    # Train our models
+    cl_train <- my_gapminder$lifeExp[fold != i] # Yi
+    cl_test <- my_gapminder$lifeExp[fold == i]  # Yi star
+    model <- randomForest(lifeExp ~ gdpPercap, data = data_train, ntree = 100)
+    predictions <- predict(model, data_test[, -1])
+    mse[i] <- mean((predictions - cl_test)^2)
+  }
+  output <- mean(mse)
+}
+
+# ########################
+k_vector <- c(2, 5, 10, 100)
+tutor_rf <- matrix(NA, nrow = 30, ncol = 4)
+for (i in 1 : length(k_vector)) {
+  for (k in 1 : 30) {
+    tutor_rf[k, i] <- my_rf_cv(k = k_vector[i])
+  }
+}
+tutor_rf
+```
